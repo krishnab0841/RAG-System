@@ -17,11 +17,20 @@ load_dotenv()
 
 # --- Paths ---
 BASE_DIR = Path(__file__).resolve().parent.parent
-UPLOAD_DIR = BASE_DIR / "uploads"
+
+# Vercel's serverless environment has a read-only filesystem except for /tmp
+if os.environ.get("VERCEL"):
+    UPLOAD_DIR = Path("/tmp/uploads")
+else:
+    UPLOAD_DIR = BASE_DIR / "uploads"
+
 STATIC_DIR = BASE_DIR / "static"
 
 # Ensure directories exist
-UPLOAD_DIR.mkdir(exist_ok=True)
+try:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    pass  # Ignore read-only errors if they still occur
 
 # --- LLM Settings (Groq) ---
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
