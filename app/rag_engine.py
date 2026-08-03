@@ -1,7 +1,7 @@
 """
 RAG Engine using LangChain orchestration.
 Uses LangChain's ChatGroq for LLM, ChatPromptTemplate for prompts,
-and the FAISS retriever for context retrieval — stream via ChatGroq.stream().
+and the in-memory vector store for context retrieval — stream via ChatGroq.stream().
 """
 
 import json
@@ -26,6 +26,7 @@ def get_settings() -> dict:
     """Get current settings."""
     return {
         "has_api_key": bool(_get_api_key()),
+        "has_hf_api_key": bool(vector_store._get_api_key()),
         "model": _settings["model"],
         "top_k": _settings["top_k"],
     }
@@ -33,12 +34,15 @@ def get_settings() -> dict:
 
 def update_settings(
     api_key: Optional[str] = None,
+    hf_api_key: Optional[str] = None,
     model: Optional[str] = None,
     top_k: Optional[int] = None,
 ):
     """Update runtime settings."""
     if api_key is not None:
         _settings["api_key"] = api_key
+    if hf_api_key is not None:
+        vector_store.set_api_key(hf_api_key)
     if model is not None:
         _settings["model"] = model
     if top_k is not None:
@@ -60,12 +64,7 @@ INSTRUCTIONS:
 
 SUMMARIZATION GUIDELINES:
 When asked to summarize a document or topic:
-1. Concisely capture the document's Purpose and Core Objectives.
-2. Outline Main Topics and Key Concepts.
-3. Highlight Important Findings and Critical Statistics.
-4. Summarize Methodologies, Key Decisions, and Recommendations.
-5. Note any mentioned Limitations, Future Scope, and the Overall Conclusion.
-6. Strictly eliminate repetitive, boilerplate, or low-value filler content. Structure the summary cleanly with Markdown sections.""",
+Generate a concise summary for each agenda item, highlighting the discussion points, key decisions, action items, responsible stakeholders, deadlines (if any), and important outcomes while excluding repetitive or irrelevant details.""",
     ),
     (
         "human",
@@ -87,7 +86,7 @@ def _format_docs_for_prompt(docs_with_scores: list) -> str:
         filename = doc.metadata.get("filename", "Unknown")
         page = doc.metadata.get("page_number", 0)
         page_info = f" (Page {page})" if page else ""
-        similarity = float(1 / (1 + float(score)))  # FAISS L2 distance → similarity [0,1]
+        similarity = float(1 / (1 + float(score)))  # distance → similarity [0,1]
 
         context_parts.append(
             f"--- Source {i}: {filename}{page_info} [Relevance: {similarity:.1%}] ---\n"
@@ -139,7 +138,7 @@ def generate_streaming_response(
 ):
     """
     Full RAG pipeline using LangChain:
-      1. Retrieve context via LangChain FAISS retriever
+      1. Retrieve context via in-memory vector store
       2. Send source citations
       3. Stream LLM response via ChatGroq.stream()
 
@@ -151,7 +150,7 @@ def generate_streaming_response(
             yield f"data: {json.dumps({'type': 'error', 'content': 'No API key configured. Please add your Groq API key in Settings.'})}\n\n"
             return
 
-        # --- Step 1: Retrieve relevant context using LangChain FAISS ---
+        # --- Step 1: Retrieve relevant context from vector store ---
         k = top_k or _settings["top_k"]
         summary_keywords = {"summarize", "summary", "overview", "abstract", "key points", "recap", "synopsis"}
         if any(kw in question.lower() for kw in summary_keywords):
