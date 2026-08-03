@@ -1,14 +1,14 @@
-# 🧠 RAG System — AI Document Q&A
+# 🧠 RAG System — AI Document & Web Q&A
 
-A full-stack Retrieval-Augmented Generation (RAG) web application built with **LangChain**, **FAISS**, and **Groq**.
+A full-stack Retrieval-Augmented Generation (RAG) web application built with **FastAPI**, **LangChain**, **FAISS**, and **Groq**.
 
-Upload your documents and ask questions — the AI retrieves relevant context and generates accurate answers with source citations.
+Upload your documents or ingest web URLs, and ask questions — the AI retrieves relevant context and generates accurate, synthesized answers with source citations.
 
-## Architecture
+## 🏗️ Architecture
 
-```
+```text
 Frontend (HTML/CSS/JS) → FastAPI Backend → LangChain Pipeline
-                                           ├── Document Loaders (PDF, DOCX, TXT, CSV, MD)
+                                           ├── Document Loaders (PDF, DOCX, TXT, CSV, MD, Web)
                                            ├── Text Splitter (RecursiveCharacterTextSplitter)
                                            ├── Embeddings (HuggingFace all-MiniLM-L6-v2)
                                            ├── Vector Store (FAISS)
@@ -16,75 +16,94 @@ Frontend (HTML/CSS/JS) → FastAPI Backend → LangChain Pipeline
                                            └── LLM (Groq — Llama 3.3 70B)
 ```
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
 | **Backend** | FastAPI |
-| **RAG Framework** | LangChain (loaders, splitters, embeddings, retriever, LLM) |
-| **LLM** | Groq (Llama 3.3 70B Versatile) |
-| **Embeddings** | HuggingFace `all-MiniLM-L6-v2` (local) |
-| **Vector DB** | FAISS (local, persistent) |
-| **Frontend** | Vanilla HTML/CSS/JS |
+| **RAG Framework** | LangChain (loaders, splitters, embeddings, retriever, LLM orchestration) |
+| **LLM** | Groq (`llama-3.3-70b-versatile`) |
+| **Embeddings** | HuggingFace `all-MiniLM-L6-v2` |
+| **Vector DB** | FAISS (local, persistent in-memory via `vector_store`) |
+| **Frontend** | Vanilla HTML/CSS/JS (SPA) |
+| **Deployment** | Vercel Serverless Functions (`api/index.py`) |
 
-## Setup
+## ✨ Features
+
+- 📄 **Multi-format Document Upload** — Supports PDF, TXT, DOCX, CSV, and Markdown files.
+- 🌐 **Web URL Ingestion** — Directly scrape and ingest content from any web link.
+- 💬 **Context-Aware Q&A** — Ask questions and receive accurate answers based exclusively on the provided context.
+- ⚡ **Real-time Streaming** — Experience fast, token-by-token streaming responses via Server-Sent Events (SSE).
+- 📚 **Source Citations** — Transparency with source document citations and similarity scores for every answer.
+- 🗂️ **Document Management** — View and delete indexed documents directly from the UI.
+- ⚙️ **Dynamic Settings** — Update API keys (Groq & HuggingFace), models, and retrieval configurations on the fly.
+- 🌙 **Premium Dark UI** — Beautiful, responsive Glassmorphism design aesthetics.
+
+## 🚀 Local Setup
 
 ### 1. Install Dependencies
 
+Ensure you have Python installed, then set up the environment:
+
 ```bash
-cd d:\RAG
+# Clone the repository
+git clone https://github.com/krishnab0841/RAG-System.git
+cd RAG-System
+
+# Create a virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+
+# Install required packages
 pip install -r requirements.txt
 ```
 
-### 2. Get a Groq API Key
+### 2. Configure API Keys
 
-- Go to [console.groq.com/keys](https://console.groq.com/keys)
-- Create a free API key
+- Get a Groq API Key at [console.groq.com/keys](https://console.groq.com/keys).
+- (Optional) Get a HuggingFace API key for higher rate limits on embeddings.
 
-### 3. Configure (Option A: Environment Variable)
-
-```bash
-# Copy the example env file
-copy .env.example .env
-
-# Edit .env and add your key
+**Option A: Environment Variables**
+Create a `.env` file in the root directory:
+```env
 GROQ_API_KEY=gsk_your_key_here
+HUGGINGFACE_API_KEY=your_hf_key_here
 ```
 
-### 3. Configure (Option B: UI Settings)
+**Option B: Web UI**
+You can also configure your keys dynamically through the **Settings** modal in the frontend application.
 
-You can also enter your API key directly in the web UI under **Settings**.
-
-### 4. Run the Server
+### 3. Run the Server
 
 ```bash
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 5. Open the App
+### 4. Access the App
 
-Navigate to [http://localhost:8000](http://localhost:8000)
+Open your browser and navigate to [http://localhost:8000](http://localhost:8000).
 
-## Features
+## ☁️ Deployment (Vercel)
 
-- 📄 **Multi-format upload** — PDF, TXT, DOCX, CSV, Markdown
-- 💬 **Chat-based Q&A** — Ask questions about your documents
-- ⚡ **Streaming responses** — Real-time token-by-token output
-- 📚 **Source citations** — See which chunks were used
-- 🗂️ **Document management** — View and delete documents
-- 🌙 **Premium dark UI** — Glassmorphism design
+This project is configured for serverless deployment on Vercel.
 
-## API Endpoints
+1. Install the Vercel CLI: `npm i -g vercel`
+2. Run `vercel` in the project root to deploy.
+3. Configure your Environment Variables (`GROQ_API_KEY`) in the Vercel dashboard.
+
+## 📡 API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/health` | Health check |
-| `POST` | `/api/upload` | Upload a document |
-| `POST` | `/api/chat` | Ask a question (SSE stream) |
-| `GET` | `/api/documents` | List documents |
-| `DELETE` | `/api/documents/{id}` | Delete a document |
-| `GET/POST` | `/api/settings` | Get/update settings |
+| `GET` | `/api/health` | Application health check |
+| `POST` | `/api/upload` | Upload and ingest a document via LangChain loaders |
+| `POST` | `/api/ingest-url` | Scrape and ingest content from a URL |
+| `POST` | `/api/chat` | Submit a question and receive a streaming SSE response |
+| `GET` | `/api/documents` | Retrieve a list of all indexed documents |
+| `DELETE`| `/api/documents/{id}` | Delete a document and its embeddings from the vector store |
+| `GET` | `/api/settings` | Get current application settings |
+| `POST` | `/api/settings` | Update runtime application settings |
 
-## License
+## 📜 License
 
-MIT
+MIT License
