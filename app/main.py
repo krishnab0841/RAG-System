@@ -3,7 +3,6 @@ FastAPI application entry point.
 """
 
 import logging
-import shutil
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.config import STATIC_DIR, UPLOAD_DIR, FAISS_INDEX_DIR
+from app.config import STATIC_DIR, UPLOAD_DIR
 from app.routes import router
 
 logger = logging.getLogger(__name__)
@@ -23,17 +22,13 @@ async def lifespan(app: FastAPI):
     # --- Startup ---
     logger.info("RAG application starting up...")
     yield
-    # --- Shutdown: clean up uploaded files and FAISS index ---
-    logger.info("RAG application shutting down. Cleaning up...")
-    for directory in (UPLOAD_DIR, FAISS_INDEX_DIR):
-        if directory.exists():
-            shutil.rmtree(directory)
-            directory.mkdir(exist_ok=True)
+    # --- Shutdown ---
+    logger.info("RAG application shutting down.")
 
 
 app = FastAPI(
     title="RAG System",
-    description="Retrieval-Augmented Generation system with FAISS and Groq",
+    description="Retrieval-Augmented Generation system with Groq and HuggingFace",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -59,4 +54,3 @@ async def serve_frontend():
 
 # --- Static Files (mounted after root route to avoid conflicts) ---
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-

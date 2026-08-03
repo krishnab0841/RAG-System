@@ -65,7 +65,7 @@ function clearChat() {
         <div class="welcome-screen" id="welcomeScreen">
             <div class="welcome-badge">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                <span>LangChain + FAISS Vector Pipeline</span>
+                <span>LangChain + AI Vector Pipeline</span>
             </div>
             
             <h1 class="welcome-title">AI Document Intelligence</h1>
@@ -587,6 +587,7 @@ async function loadSettings() {
         const data = await response.json();
 
         const statusEl = document.getElementById("apiKeyStatus");
+        const hfStatusEl = document.getElementById("hfApiKeyStatus");
         const modelSelect = document.getElementById("modelSelect");
         const topKSelect = document.getElementById("topKSelect");
         const activeModelName = document.getElementById("activeModelName");
@@ -598,6 +599,16 @@ async function loadSettings() {
             } else {
                 statusEl.textContent = "● Key Pending";
                 statusEl.className = "api-key-status missing";
+            }
+        }
+
+        if (hfStatusEl) {
+            if (data.has_hf_api_key) {
+                hfStatusEl.textContent = "● Connected";
+                hfStatusEl.className = "api-key-status connected";
+            } else {
+                hfStatusEl.textContent = "● Key Pending";
+                hfStatusEl.className = "api-key-status missing";
             }
         }
 
@@ -620,11 +631,13 @@ async function loadSettings() {
 
 async function saveSettings() {
     const apiKey = document.getElementById("apiKeyInput").value.trim();
+    const hfApiKey = document.getElementById("hfApiKeyInput").value.trim();
     const model = document.getElementById("modelSelect").value;
     const topK = parseInt(document.getElementById("topKSelect").value);
 
     const body = { model, top_k: topK };
     if (apiKey) body.api_key = apiKey;
+    if (hfApiKey) body.hf_api_key = hfApiKey;
 
     try {
         const response = await fetch("/api/settings", {
@@ -637,13 +650,20 @@ async function saveSettings() {
 
         const data = await response.json();
         const statusEl = document.getElementById("apiKeyStatus");
+        const hfStatusEl = document.getElementById("hfApiKeyStatus");
 
         if (data.has_api_key && statusEl) {
             statusEl.textContent = "● Connected";
             statusEl.className = "api-key-status connected";
         }
 
+        if (data.has_hf_api_key && hfStatusEl) {
+            hfStatusEl.textContent = "● Connected";
+            hfStatusEl.className = "api-key-status connected";
+        }
+
         document.getElementById("apiKeyInput").value = "";
+        document.getElementById("hfApiKeyInput").value = "";
         showToast("Configuration saved successfully", "success");
         loadSettings();
 

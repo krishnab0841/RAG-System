@@ -1,111 +1,71 @@
 """
-FAISS vector store using LangChain integration.
-Uses LangChain's FAISS wrapper and HuggingFace embeddings
-for document storage, retrieval, and management.
+In-memory vector store using HuggingFace Inference API embeddings.
+Replaces FAISS + local PyTorch embeddings with a lightweight,
+Vercel-compatible approach using LangChain's InMemoryVectorStore
+and HuggingFace Inference API for remote embedding generation.
 """
 
 import logging
-from pathlib import Path
 from typing import Optional
 
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_core.documents import Document
+from langchain_core.vectorstores import InMemoryVectorStore
 
-from app.config import FAISS_INDEX_DIR, EMBEDDING_MODEL, TOP_K
+from app.config import HUGGINGFACE_API_KEY, EMBEDDING_MODEL, TOP_K
 
 logger = logging.getLogger(__name__)
 
 
 class VectorStore:
-    """Manages LangChain FAISS vector store for the RAG pipeline."""
-
-    INDEX_NAME = "rag_index"
+    """Manages an in-memory vector store with HuggingFace API embeddings."""
 
     def __init__(self):
-        self._embeddings: Optional[HuggingFaceEmbeddings] = None
-        self._store: Optional[FAISS] = None
+        self._embeddings = None
+        self._store: Optional[InMemoryVectorStore] = None
         self._doc_registry: dict[str, dict] = {}  # doc_id -> {filename, file_type, chunk_count}
-        self._initialized = False
+        self._runtime_hf_key: str = ""  # Can be set via settings API
+        # Track all documents with their store IDs for deletion
+        self._doc_store_ids: dict[str, list[str]] = {}  # doc_id -> [store_ids]
 
-    def _ensure_initialized(self):
-        """Lazy-load the FAISS store on first access."""
-        if self._initialized:
-            return
-        self._initialized = True
-        self._load_store()
+    def set_api_key(self, key: str):
+        """Update the HuggingFace API key at runtime."""
+        self._runtime_hf_key = key
+        # Force re-initialization of embeddings with new key
+        self._embeddings = None
+
+    def _get_api_key(self) -> str:
+        """Resolve HuggingFace API key from runtime settings or config."""
+        if self._runtime_hf_key:
+            return self._runtime_hf_key
+        return HUGGINGFACE_API_KEY
 
     @property
-    def embeddings(self) -> HuggingFaceEmbeddings:
-        """Lazy-load the HuggingFace embedding model via LangChain."""
+    def embeddings(self) -> HuggingFaceEndpointEmbeddings:
+        """Lazy-load the HuggingFace Inference API embedding model."""
         if self._embeddings is None:
-            logger.info("Loading embedding model: %s", EMBEDDING_MODEL)
-            self._embeddings = HuggingFaceEmbeddings(
-                model_name=EMBEDDING_MODEL,
-                model_kwargs={"device": "cpu"},
-                encode_kwargs={"normalize_embeddings": True},
+            api_key = self._get_api_key()
+            if not api_key:
+                raise ValueError(
+                    "HuggingFace API key is required for embeddings. "
+                    "Set HUGGINGFACE_API_KEY in your environment or configure it in Settings."
+                )
+            logger.info("Initializing HuggingFace Inference API embeddings: %s", EMBEDDING_MODEL)
+            self._embeddings = HuggingFaceEndpointEmbeddings(
+                model=EMBEDDING_MODEL,
+                huggingfacehub_api_token=api_key,
             )
-            logger.info("Embedding model loaded successfully.")
+            logger.info("Embedding model initialized successfully (API-based).")
         return self._embeddings
 
-    def _index_path(self) -> Path:
-        return FAISS_INDEX_DIR
-
-    def _load_store(self):
-        """Load existing FAISS index from disk, or start empty."""
-        index_path = self._index_path() / f"{self.INDEX_NAME}.faiss"
-        if index_path.exists():
-            try:
-                logger.info("Loading existing FAISS index from disk...")
-                self._store = FAISS.load_local(
-                    folder_path=str(self._index_path()),
-                    embeddings=self.embeddings,
-                    index_name=self.INDEX_NAME,
-                    allow_dangerous_deserialization=True,
-                )
-                # Rebuild doc registry from stored metadata
-                self._rebuild_registry()
-                logger.info("FAISS index loaded with %d documents.", len(self._doc_registry))
-            except Exception as e:
-                logger.warning("Failed to load FAISS index: %s. Starting fresh.", e)
-                self._store = None
-                self._doc_registry = {}
-        else:
-            logger.info("No existing FAISS index found. Starting fresh.")
-            self._store = None
-            self._doc_registry = {}
-
-    def _save_store(self):
-        """Persist the FAISS index to disk."""
-        if self._store is not None:
-            self._store.save_local(
-                folder_path=str(self._index_path()),
-                index_name=self.INDEX_NAME,
-            )
-
-    def _rebuild_registry(self):
-        """Rebuild the document registry from the FAISS store's metadata."""
-        self._doc_registry = {}
+    def _ensure_store(self):
+        """Ensure the in-memory store is initialized."""
         if self._store is None:
-            return
-
-        # Access the docstore to scan all documents
-        for doc_id_key in self._store.docstore._dict:
-            doc = self._store.docstore._dict[doc_id_key]
-            if hasattr(doc, "metadata"):
-                meta_doc_id = doc.metadata.get("doc_id", "unknown")
-                if meta_doc_id not in self._doc_registry:
-                    self._doc_registry[meta_doc_id] = {
-                        "doc_id": meta_doc_id,
-                        "filename": doc.metadata.get("filename", "unknown"),
-                        "file_type": doc.metadata.get("file_type", "unknown"),
-                        "chunk_count": 0,
-                    }
-                self._doc_registry[meta_doc_id]["chunk_count"] += 1
+            self._store = InMemoryVectorStore(embedding=self.embeddings)
 
     def add_documents(self, doc_id: str, chunks: list[Document]) -> int:
         """
-        Add LangChain Document chunks to the FAISS vector store.
+        Add LangChain Document chunks to the in-memory vector store.
 
         Args:
             doc_id: Unique document identifier.
@@ -114,22 +74,14 @@ class VectorStore:
         Returns:
             Number of chunks added.
         """
-        self._ensure_initialized()
-
         if not chunks:
             return 0
 
-        if self._store is None:
-            # Create a new FAISS store from the first batch
-            self._store = FAISS.from_documents(
-                documents=chunks,
-                embedding=self.embeddings,
-            )
-        else:
-            # Add to existing store
-            self._store.add_documents(documents=chunks)
+        self._ensure_store()
 
-        self._save_store()
+        # Add documents and track the returned IDs
+        store_ids = self._store.add_documents(documents=chunks)
+        self._doc_store_ids[doc_id] = store_ids
 
         # Update the registry
         first_chunk = chunks[0]
@@ -141,27 +93,6 @@ class VectorStore:
         }
 
         return len(chunks)
-
-    def as_retriever(self, top_k: Optional[int] = None):
-        """
-        Return a LangChain retriever interface for the FAISS store.
-
-        Args:
-            top_k: Number of results to retrieve.
-
-        Returns:
-            LangChain VectorStoreRetriever.
-        """
-        self._ensure_initialized()
-
-        if self._store is None:
-            return None
-
-        k = top_k or TOP_K
-        return self._store.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": k},
-        )
 
     def similarity_search_with_score(
         self,
@@ -176,19 +107,35 @@ class VectorStore:
             top_k: Number of results to return.
 
         Returns:
-            List of (Document, score) tuples.
+            List of (Document, score) tuples. Score is a distance
+            (lower = more similar) to maintain compatibility with
+            the existing RAG engine score conversion.
         """
-        self._ensure_initialized()
-
         if self._store is None:
             return []
 
         k = top_k or TOP_K
-        return self._store.similarity_search_with_score(query=query, k=k)
+
+        # InMemoryVectorStore.similarity_search_with_score returns
+        # (doc, similarity_score) where higher = more similar.
+        # Convert to distance-style score for backward compat with
+        # the RAG engine's formula: similarity = 1 / (1 + distance)
+        results = self._store.similarity_search_with_score(query=query, k=k)
+
+        converted = []
+        for doc, similarity in results:
+            # Convert similarity (0..1) → distance so that 1/(1+distance) ≈ similarity
+            if similarity > 0:
+                distance = (1.0 / max(similarity, 1e-6)) - 1.0
+            else:
+                distance = 100.0  # Very dissimilar
+            converted.append((doc, distance))
+
+        return converted
 
     def delete_document(self, doc_id: str) -> int:
         """
-        Delete all chunks belonging to a document and rebuild the index.
+        Delete all chunks belonging to a document.
 
         Args:
             doc_id: Document identifier.
@@ -196,58 +143,35 @@ class VectorStore:
         Returns:
             Number of chunks deleted.
         """
-        self._ensure_initialized()
-
         if self._store is None:
             return 0
 
-        # Find all docstore keys for this doc_id
-        keys_to_delete = []
-        for key, doc in self._store.docstore._dict.items():
-            if hasattr(doc, "metadata") and doc.metadata.get("doc_id") == doc_id:
-                keys_to_delete.append(key)
-
-        if not keys_to_delete:
+        store_ids = self._doc_store_ids.get(doc_id, [])
+        if not store_ids:
             return 0
 
-        deleted_count = len(keys_to_delete)
+        deleted_count = len(store_ids)
 
-        # Collect remaining documents
-        remaining_docs = []
-        for key, doc in self._store.docstore._dict.items():
-            if key not in keys_to_delete:
-                remaining_docs.append(doc)
+        # Delete by IDs from the store
+        try:
+            self._store.delete(ids=store_ids)
+        except Exception as e:
+            logger.warning("Failed to delete from store by IDs: %s", e)
 
-        if remaining_docs:
-            # Rebuild from remaining documents
-            self._store = FAISS.from_documents(
-                documents=remaining_docs,
-                embedding=self.embeddings,
-            )
-        else:
-            # No documents left — reset store
-            self._store = None
-
-        self._save_store()
-
-        # Update registry
+        # Clean up registry
+        self._doc_store_ids.pop(doc_id, None)
         self._doc_registry.pop(doc_id, None)
 
         return deleted_count
 
     def get_all_documents(self) -> list[dict]:
         """Get a summary of all unique documents in the store."""
-        self._ensure_initialized()
         return list(self._doc_registry.values())
 
     def get_document_count(self) -> int:
         """Get total number of unique documents."""
-        self._ensure_initialized()
         return len(self._doc_registry)
 
 
-
-
-# Singleton instance — no heavy work happens here now
+# Singleton instance
 vector_store = VectorStore()
-

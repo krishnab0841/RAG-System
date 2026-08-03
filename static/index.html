@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="RAG System — Enterprise AI Document Intelligence Platform with RAG, FAISS vectors, and Groq LLM.">
+    <meta name="description" content="RAG System — Enterprise AI Document Intelligence Platform with RAG, vector search, and Groq LLM.">
     <title>RAG System — AI Document Intelligence Platform</title>
     
     <!-- Fonts -->
@@ -129,6 +129,13 @@
                                     <div class="api-key-status missing" id="apiKeyStatus">● Key Pending</div>
                                 </div>
                                 <div class="setting-field">
+                                    <label>HuggingFace API Key</label>
+                                    <div class="input-with-icon">
+                                        <input type="password" id="hfApiKeyInput" placeholder="hf_...">
+                                    </div>
+                                    <div class="api-key-status missing" id="hfApiKeyStatus">● Key Pending</div>
+                                </div>
+                                <div class="setting-field">
                                     <label>LLM Engine</label>
                                     <select id="modelSelect">
                                         <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Recommended)</option>
@@ -206,7 +213,7 @@
                 <div class="welcome-screen" id="welcomeScreen">
                     <div class="welcome-badge">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        <span>LangChain + FAISS Vector Pipeline</span>
+                        <span>LangChain + AI Vector Pipeline</span>
                     </div>
                     
                     <h1 class="welcome-title">AI Document Intelligence</h1>

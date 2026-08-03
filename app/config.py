@@ -18,19 +18,18 @@ load_dotenv()
 # --- Paths ---
 BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = BASE_DIR / "uploads"
-FAISS_INDEX_DIR = BASE_DIR / "faiss_index"
 STATIC_DIR = BASE_DIR / "static"
 
 # Ensure directories exist
 UPLOAD_DIR.mkdir(exist_ok=True)
-FAISS_INDEX_DIR.mkdir(exist_ok=True)
 
 # --- LLM Settings (Groq) ---
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# --- Embedding Settings ---
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+# --- Embedding Settings (HuggingFace Inference API) ---
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # --- Chunking Settings ---
 CHUNK_SIZE = 1000

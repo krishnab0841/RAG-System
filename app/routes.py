@@ -4,6 +4,9 @@ API route definitions for the RAG application.
 
 import shutil
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
@@ -79,13 +82,15 @@ async def upload_document(file: UploadFile = File(...)):
         file_path.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.exception("Failed to process document")
         file_path.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail=f"Failed to process document: {str(e)}")
 
-    # Add LangChain Documents to FAISS vector store
+    # Add LangChain Documents to vector store
     try:
         chunk_count = vector_store.add_documents(doc_id, chunks)
     except Exception as e:
+        logger.exception("Failed to index document")
         file_path.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail=f"Failed to index document: {str(e)}")
 
@@ -184,6 +189,7 @@ async def update_app_settings(request: SettingsRequest):
     """Update application settings."""
     update_settings(
         api_key=request.api_key,
+        hf_api_key=request.hf_api_key,
         model=request.model,
         top_k=request.top_k,
     )

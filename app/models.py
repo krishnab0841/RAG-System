@@ -44,6 +44,7 @@ class DocumentListResponse(BaseModel):
 class SettingsRequest(BaseModel):
     """Request body for updating settings."""
     api_key: Optional[str] = None
+    hf_api_key: Optional[str] = None
     model: Optional[str] = None
     top_k: Optional[int] = None
 
@@ -51,6 +52,7 @@ class SettingsRequest(BaseModel):
 class SettingsResponse(BaseModel):
     """Response body for settings."""
     has_api_key: bool
+    has_hf_api_key: bool
     model: str
     top_k: int
 

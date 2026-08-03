@@ -1,25 +1,17 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9
-
-# Explicitly use CPU-only PyTorch to reduce Vercel bundle size (saves ~4GB of CUDA binaries)
-torch==2.3.1+cpu
-torchaudio==2.3.1+cpu
-torchvision==0.18.1+cpu
 
 # LangChain ecosystem
 langchain>=0.3.7
 langchain-core>=0.3.19
 langchain-community>=0.3.7
 langchain-groq>=0.2.1
-langchain-huggingface>=0.1.2
 langchain-text-splitters>=0.3.2
 
-# Embedding model & vector store
-sentence-transformers>=3.0.0
-faiss-cpu>=1.9.0
+# Embeddings via HuggingFace Inference API (no PyTorch needed)
+langchain-huggingface>=0.1.2
+huggingface-hub>=0.20.0
 
 # Document loader dependencies
 pypdf>=5.0.0
@@ -29,3 +21,4 @@ docx2txt>=0.8
 python-dotenv>=1.0.0
 beautifulsoup4>=4.12.0
 requests>=2.31.0
+numpy>=1.24.0
