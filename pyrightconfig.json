@@ -1,0 +1,8 @@
+{
+  "venvPath": "d:\\RAG",
+  "venv": "venv",
+  "extraPaths": [
+    "venv/Lib/site-packages",
+    "d:/RAG/venv/Lib/site-packages"
+  ]
+}

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RAG System — Enterprise AI Document Intelligence Platform with RAG, FAISS vectors, and Groq LLM.">
+    <title>RAG System — AI Document Intelligence Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar Overlay (mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Brand Header -->
+            <div class="sidebar-header">
+                <div class="logo-box">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-name">RAG <span class="highlight">System</span></div>
+                    <div class="brand-sub">Enterprise Document AI</div>
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                <!-- Upload Section -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="toggleSection(this)">
+                        <div class="section-header-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <span>Ingest Documents</span>
+                        </div>
+                        <span class="toggle-icon open">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </span>
+                    </div>
+                    <div class="section-body">
+                        <div class="section-body-inner">
+                            <div class="upload-dropzone" id="uploadDropzone">
+                                <div class="upload-icon-wrapper">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                                </div>
+                                <div class="upload-text"><strong>Click to upload</strong> or drag files</div>
+                                <div class="upload-formats">PDF, DOCX, TXT, CSV, Markdown</div>
+                                <input type="file" id="fileInput" accept=".pdf,.txt,.docx,.csv,.md" multiple>
+                            </div>
+
+                            <div class="url-ingest-divider">
+                                <span>or paste web link</span>
+                            </div>
+
+                            <div class="url-ingest-box">
+                                <div class="url-input-wrapper">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                    <input type="url" id="urlInput" placeholder="https://example.com/doc..." onkeydown="if(event.key==='Enter') ingestUrl()">
+                                    <button class="btn-ingest-url" onclick="ingestUrl()" id="ingestUrlBtn" title="Fetch & Ingest URL">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="upload-progress" id="uploadProgress">
+                                <div class="progress-bar">
+                                    <div class="progress-bar-fill" id="progressBarFill"></div>
+                                </div>
+                                <div class="upload-status" id="uploadStatus">Processing document...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Knowledge Base Section -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="toggleSection(this)">
+                        <div class="section-header-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            <span>Knowledge Base <span id="docCount" class="badge-count">0</span></span>
+                        </div>
+                        <span class="toggle-icon open">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </span>
+                    </div>
+                    <div class="section-body">
+                        <div class="section-body-inner">
+                            <!-- Search Box for Documents -->
+                            <div class="doc-search-box">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" id="docSearchInput" placeholder="Filter documents..." onkeyup="filterDocumentList()">
+                            </div>
+                            <div class="document-list" id="documentList">
+                                <div class="no-documents">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                                    <span>No documents ingested</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="toggleSection(this)">
+                        <div class="section-header-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            <span>Model Configuration</span>
+                        </div>
+                        <span class="toggle-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </span>
+                    </div>
+                    <div class="section-body collapsed">
+                        <div class="section-body-inner">
+                            <div class="settings-group">
+                                <div class="setting-field">
+                                    <label>Groq API Key</label>
+                                    <div class="input-with-icon">
+                                        <input type="password" id="apiKeyInput" placeholder="gsk_...">
+                                    </div>
+                                    <div class="api-key-status missing" id="apiKeyStatus">● Key Pending</div>
+                                </div>
+                                <div class="setting-field">
+                                    <label>LLM Engine</label>
+                                    <select id="modelSelect">
+                                        <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Recommended)</option>
+                                        <option value="llama-3.1-8b-instant">Llama 3.1 8B (Ultra-Fast)</option>
+                                        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                                        <option value="gemma2-9b-it">Gemma 2 9B</option>
+                                    </select>
+                                </div>
+                                <div class="setting-field">
+                                    <label>Vector Search Top-K</label>
+                                    <select id="topKSelect">
+                                        <option value="3">Top 3 Chunks</option>
+                                        <option value="5" selected>Top 5 Chunks (Balanced)</option>
+                                        <option value="8">Top 8 Chunks</option>
+                                        <option value="12">Top 12 Chunks (Deep Summary)</option>
+                                    </select>
+                                </div>
+                                <button class="btn-save-settings" onclick="saveSettings()">Save Configuration</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="sidebar-footer-version">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    v1.0.0
+                </div>
+                <div class="sidebar-footer-status">
+                    <span class="status-dot"></span>
+                    Online
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Floating Glow Orbs -->
+            <div class="glow-orb glow-orb-1"></div>
+            <div class="glow-orb glow-orb-2"></div>
+            <div class="glow-orb glow-orb-3"></div>
+
+            <!-- Header Bar -->
+            <header class="chat-header">
+                <div class="chat-header-left">
+                    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <div class="header-info">
+                        <div class="chat-title">Document Intelligence Workspace</div>
+                        <div class="chat-subtitle">Ask questions, extract metrics, or request executive summaries</div>
+                    </div>
+                </div>
+                
+                <div class="chat-header-right">
+                    <div class="model-badge" id="activeModelBadge">
+                        <span class="model-icon">⚡</span>
+                        <span id="activeModelName">Llama 3.3 70B</span>
+                    </div>
+                    <div class="stats-badge" id="statsBadge">
+                        <span class="dot"></span>
+                        <span id="statsText">System Ready</span>
+                    </div>
+                    <button class="btn-clear-chat" onclick="clearChat()" title="Clear conversation">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        <span>Clear</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Stream Area -->
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-badge">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        <span>LangChain + FAISS Vector Pipeline</span>
+                    </div>
+                    
+                    <h1 class="welcome-title">AI Document Intelligence</h1>
+                    <p class="welcome-subtitle">
+                        Upload complex business documents, research papers, or specs. Ask detailed questions or click a starter prompt below for an instant summary.
+                    </p>
+
+                    <!-- Starter Prompts Grid -->
+                    <div class="starter-prompts">
+                        <div class="prompt-card" onclick="sendQuickPrompt('Summarize the uploaded document concisely highlighting key objectives, findings, and conclusion.')">
+                            <div class="prompt-icon">📄</div>
+                            <div class="prompt-text">
+                                <div class="prompt-title">Summarize Document <span class="kbd-hint">⏎</span></div>
+                                <div class="prompt-desc">Objectives, key findings & conclusion</div>
+                            </div>
+                        </div>
+                        <div class="prompt-card" onclick="sendQuickPrompt('What are the main topics and key takeaways discussed in this document?')">
+                            <div class="prompt-icon">💡</div>
+                            <div class="prompt-text">
+                                <div class="prompt-title">Key Takeaways <span class="kbd-hint">⏎</span></div>
+                                <div class="prompt-desc">Core concepts and major highlights</div>
+                            </div>
+                        </div>
+                        <div class="prompt-card" onclick="sendQuickPrompt('Extract critical statistics, data tables, metrics, and quantitative findings.')">
+                            <div class="prompt-icon">📊</div>
+                            <div class="prompt-text">
+                                <div class="prompt-title">Extract Metrics & Data <span class="kbd-hint">⏎</span></div>
+                                <div class="prompt-desc">Statistics, measurements & tables</div>
+                            </div>
+                        </div>
+                        <div class="prompt-card" onclick="sendQuickPrompt('What methodologies, recommendations, or decisions are detailed in the document?')">
+                            <div class="prompt-icon">🛠️</div>
+                            <div class="prompt-text">
+                                <div class="prompt-title">Methodologies & Decisions <span class="kbd-hint">⏎</span></div>
+                                <div class="prompt-desc">Execution methods & guidance</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Bar -->
+            <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                    <textarea
+                        class="chat-input"
+                        id="chatInput"
+                        placeholder="Ask a question or request a summary..."
+                        rows="1"
+                    ></textarea>
+                    <button class="btn-send" id="sendBtn" onclick="sendMessage()" title="Send message (Enter)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+                <div class="chat-input-hint">
+                    <span>Press <strong>Enter</strong> to send</span>
+                    <span class="separator">•</span>
+                    <span><strong>Shift + Enter</strong> for line break</span>
+                    <span class="separator">•</span>
+                    <span>Powered by <strong>Llama 3.3 70B</strong></span>
+                    <span class="separator">•</span>
+                    <span class="char-count" id="charCount"></span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Source Citation Popover -->
+    <div class="source-popover" id="sourcePopover">
+        <div class="source-popover-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span id="popoverTitle"></span>
+        </div>
+        <div class="source-popover-content" id="popoverContent"></div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
