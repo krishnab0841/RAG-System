@@ -245,12 +245,7 @@ class VectorStore:
         self._ensure_initialized()
         return len(self._doc_registry)
 
-    def get_total_chunks(self) -> int:
-        """Get total number of chunks in the store."""
-        self._ensure_initialized()
-        if self._store is None:
-            return 0
-        return len(self._store.docstore._dict)
+
 
 
 # Singleton instance — no heavy work happens here now

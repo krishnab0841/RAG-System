@@ -1,6 +1,13 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9
+
+# Explicitly use CPU-only PyTorch to reduce Vercel bundle size (saves ~4GB of CUDA binaries)
+torch==2.3.1+cpu
+torchaudio==2.3.1+cpu
+torchvision==0.18.1+cpu
 
 # LangChain ecosystem
 langchain>=0.3.7

@@ -25,11 +25,6 @@ class SourceChunk(BaseModel):
     similarity_score: Optional[float] = None
 
 
-class ChatResponse(BaseModel):
-    """Response body for the chat endpoint (non-streaming)."""
-    answer: str
-    sources: list[SourceChunk]
-
 
 class DocumentInfo(BaseModel):
     """Information about an ingested document."""
