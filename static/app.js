@@ -384,6 +384,9 @@ function setupFileUpload() {
     const fileInput = document.getElementById("fileInput");
     if (!dropzone || !fileInput) return;
 
+    const chatAttachButton = document.getElementById("chatAttachBtn");
+    chatAttachButton?.addEventListener("click", () => fileInput.click());
+
     dropzone.addEventListener("click", () => fileInput.click());
 
     dropzone.addEventListener("dragover", (e) => {
