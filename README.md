@@ -24,9 +24,10 @@ Frontend (HTML/CSS/JS) → FastAPI Backend → LangChain Pipeline
 | **RAG Framework** | LangChain (loaders, splitters, embeddings, retriever, LLM orchestration) |
 | **LLM** | Groq (`llama-3.3-70b-versatile`) |
 | **Embeddings** | HuggingFace `all-MiniLM-L6-v2` |
-| **Vector DB** | FAISS (local, persistent in-memory via `vector_store`) |
+| **Vector DB** | LangChain `InMemoryVectorStore` backed by Hugging Face embeddings |
 | **Frontend** | Vanilla HTML/CSS/JS (SPA) |
-| **Deployment** | Vercel Serverless Functions (`api/index.py`) |
+| **Backend Deployment** | Render web service |
+| **Frontend Deployment** | Vercel static site |
 
 ## ✨ Features
 
@@ -36,7 +37,7 @@ Frontend (HTML/CSS/JS) → FastAPI Backend → LangChain Pipeline
 - ⚡ **Real-time Streaming** — Experience fast, token-by-token streaming responses via Server-Sent Events (SSE).
 - 📚 **Source Citations** — Transparency with source document citations and similarity scores for every answer.
 - 🗂️ **Document Management** — View and delete indexed documents directly from the UI.
-- ⚙️ **Dynamic Settings** — Update API keys (Groq & HuggingFace), models, and retrieval configurations on the fly.
+- ⚙️ **Runtime Preferences** — Update the model and retrieval configuration; API keys stay in the hosting environment.
 - 🌙 **Premium Dark UI** — Beautiful, responsive Glassmorphism design aesthetics.
 
 ## 🚀 Local Setup
@@ -79,17 +80,43 @@ You can also configure your keys dynamically through the **Settings** modal in t
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 4. Access the App
+### 4. Access the API
 
-Open your browser and navigate to [http://localhost:8000](http://localhost:8000).
+Open [http://localhost:8000/docs](http://localhost:8000/docs) for the API documentation, or call [http://localhost:8000/api/health](http://localhost:8000/api/health).
 
-## ☁️ Deployment (Vercel)
+## ☁️ Deploy the backend to Render
 
-This project is configured for serverless deployment on Vercel.
+The repository includes `render.yaml`, so it can be deployed as a Render Blueprint. It uses Python 3.11, installs `requirements.txt`, starts `uvicorn app.main:app`, and checks `/api/health`.
 
-1. Install the Vercel CLI: `npm i -g vercel`
-2. Run `vercel` in the project root to deploy.
-3. Configure your Environment Variables (`GROQ_API_KEY`) in the Vercel dashboard.
+1. Push this repository to GitHub, GitLab, or Bitbucket. Do not commit `.env`.
+2. In Render, select **New → Blueprint** and select the repository. Render reads `render.yaml`.
+3. Set these environment variables in the service configuration:
+
+   ```text
+   GROQ_API_KEY=your_groq_key
+   HUGGINGFACE_API_KEY=your_hugging_face_token
+   CORS_ORIGINS=https://your-frontend.vercel.app
+   ```
+
+   For a custom frontend domain, add it as a comma-separated value too, for example: `https://app.example.com,https://your-frontend.vercel.app`.
+4. Deploy and copy the resulting public URL, such as `https://rag-system-backend.onrender.com`.
+5. Verify `https://your-render-url/api/health` responds with `status: "ok"`.
+
+Render's filesystem and this application's vector store are ephemeral. Uploaded documents and their index disappear after a restart, redeploy, or scale-out. Add persistent object storage and a managed vector database before using this for durable or multi-user workloads.
+
+## ▲ Connect and deploy the frontend on Vercel
+
+1. In `static/config.js`, set `window.RAG_API_BASE_URL` to the Render URL from the prior section, without a trailing slash.
+
+   ```js
+   window.RAG_API_BASE_URL = "https://rag-system-backend.onrender.com";
+   ```
+
+2. Import the same repository in Vercel. The included `vercel.json` deploys only the static frontend; it no longer deploys the FastAPI backend as a serverless function.
+3. Deploy. Open the Vercel URL and upload a small text file to confirm browser requests reach Render.
+4. If the browser reports a CORS error, make the Vercel URL exactly match one of the `CORS_ORIGINS` values in Render, then redeploy the Render service.
+
+For preview deployments, either add each preview URL to `CORS_ORIGINS` or test only against the production Vercel domain.
 
 ## 📡 API Endpoints
 

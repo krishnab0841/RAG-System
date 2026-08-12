@@ -16,7 +16,6 @@ from app.vector_store import vector_store
 
 # --- Runtime Settings (mutable) ---
 _settings = {
-    "api_key": GROQ_API_KEY,
     "model": GROQ_MODEL,
     "top_k": TOP_K,
 }
@@ -32,17 +31,8 @@ def get_settings() -> dict:
     }
 
 
-def update_settings(
-    api_key: Optional[str] = None,
-    hf_api_key: Optional[str] = None,
-    model: Optional[str] = None,
-    top_k: Optional[int] = None,
-):
-    """Update runtime settings."""
-    if api_key is not None:
-        _settings["api_key"] = api_key
-    if hf_api_key is not None:
-        vector_store.set_api_key(hf_api_key)
+def update_settings(model: Optional[str] = None, top_k: Optional[int] = None):
+    """Update non-secret runtime settings."""
     if model is not None:
         _settings["model"] = model
     if top_k is not None:
@@ -111,9 +101,7 @@ def _build_sources_payload(docs_with_scores: list) -> list[dict]:
 
 
 def _get_api_key() -> str:
-    """Resolve API key from runtime settings or re-read environment."""
-    if _settings["api_key"]:
-        return _settings["api_key"]
+    """Read the Groq API key supplied by the hosting environment."""
     from dotenv import load_dotenv
     import os
     load_dotenv()
@@ -147,7 +135,7 @@ def generate_streaming_response(
     try:
         api_key = _get_api_key()
         if not api_key:
-            yield f"data: {json.dumps({'type': 'error', 'content': 'No API key configured. Please add your Groq API key in Settings.'})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'content': 'The service is missing its GROQ_API_KEY configuration.'})}\n\n"
             return
 
         # --- Step 1: Retrieve relevant context from vector store ---
@@ -187,5 +175,5 @@ def generate_streaming_response(
         traceback.print_exc()
         error_msg = str(e)
         if "api_key" in error_msg.lower() or "401" in error_msg or "403" in error_msg:
-            error_msg = "Invalid API key. Please check your Groq API key in Settings."
+            error_msg = "Invalid Groq API key. Please contact the service administrator."
         yield f"data: {json.dumps({'type': 'error', 'content': f'LLM Error: {error_msg}'})}\n\n"

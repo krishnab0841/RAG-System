@@ -2,7 +2,6 @@
 API route definitions for the RAG application.
 """
 
-import shutil
 from pathlib import Path
 import logging
 
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.config import UPLOAD_DIR, SUPPORTED_EXTENSIONS
+from app.config import MAX_UPLOAD_SIZE_BYTES, UPLOAD_DIR, SUPPORTED_EXTENSIONS
 from app.models import (
     ChatRequest,
     UrlIngestRequest,
@@ -48,7 +47,7 @@ async def health_check():
 async def upload_document(file: UploadFile = File(...)):
     """Upload and ingest a document via LangChain loaders."""
     # Validate file type
-    filename = file.filename or "unknown"
+    filename = Path(file.filename or "unknown").name
     ext = Path(filename).suffix.lower()
 
     if ext not in SUPPORTED_EXTENSIONS:
@@ -67,13 +66,24 @@ async def upload_document(file: UploadFile = File(...)):
         file_path = UPLOAD_DIR / f"{original_stem}_{counter}{ext}"
         counter += 1
 
+    bytes_written = 0
     try:
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            while chunk := await file.read(1024 * 1024):
+                bytes_written += len(chunk)
+                if bytes_written > MAX_UPLOAD_SIZE_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail="File is too large. The maximum upload size is 20 MB.",
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        file_path.unlink(missing_ok=True)
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
     finally:
-        file.file.close()
+        await file.close()
 
     # Process and chunk using LangChain document loaders + splitters
     try:
@@ -188,8 +198,6 @@ async def delete_document(doc_id: str):
 async def update_app_settings(request: SettingsRequest):
     """Update application settings."""
     update_settings(
-        api_key=request.api_key,
-        hf_api_key=request.hf_api_key,
         model=request.model,
         top_k=request.top_k,
     )

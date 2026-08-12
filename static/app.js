@@ -8,6 +8,11 @@
 // ============================================================
 let isStreaming = false;
 let allDocuments = [];
+const API_BASE_URL = (window.RAG_API_BASE_URL || "").replace(/\/$/, "");
+
+function apiUrl(path) {
+    return `${API_BASE_URL}${path}`;
+}
 
 // ============================================================
 // Initialization
@@ -133,7 +138,7 @@ async function sendMessage() {
     updateSystemStatus("Generating...");
 
     try {
-        const response = await fetch("/api/chat", {
+        const response = await fetch(apiUrl("/api/chat"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ question }),
@@ -422,7 +427,7 @@ async function uploadFiles(files) {
 
         try {
             barFill.style.width = "70%";
-            const response = await fetch("/api/upload", {
+            const response = await fetch(apiUrl("/api/upload"), {
                 method: "POST",
                 body: formData,
             });
@@ -474,7 +479,7 @@ async function ingestUrl() {
 
     try {
         barFill.style.width = "75%";
-        const response = await fetch("/api/ingest-url", {
+        const response = await fetch(apiUrl("/api/ingest-url"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url }),
@@ -510,7 +515,7 @@ async function ingestUrl() {
 // ============================================================
 async function loadDocuments() {
     try {
-        const response = await fetch("/api/documents");
+        const response = await fetch(apiUrl("/api/documents"));
         const data = await response.json();
         allDocuments = data.documents || [];
 
@@ -568,7 +573,7 @@ async function deleteDocument(docId, filename) {
     if (!confirm(`Delete "${filename}" and its vector index?`)) return;
 
     try {
-        const response = await fetch(`/api/documents/${docId}`, { method: "DELETE" });
+        const response = await fetch(apiUrl(`/api/documents/${docId}`), { method: "DELETE" });
         if (!response.ok) throw new Error("Delete failed");
 
         showToast(`Removed "${filename}"`, "info");
@@ -583,7 +588,7 @@ async function deleteDocument(docId, filename) {
 // ============================================================
 async function loadSettings() {
     try {
-        const response = await fetch("/api/settings");
+        const response = await fetch(apiUrl("/api/settings"));
         const data = await response.json();
 
         const statusEl = document.getElementById("apiKeyStatus");
@@ -630,17 +635,12 @@ async function loadSettings() {
 }
 
 async function saveSettings() {
-    const apiKey = document.getElementById("apiKeyInput").value.trim();
-    const hfApiKey = document.getElementById("hfApiKeyInput").value.trim();
     const model = document.getElementById("modelSelect").value;
     const topK = parseInt(document.getElementById("topKSelect").value);
 
     const body = { model, top_k: topK };
-    if (apiKey) body.api_key = apiKey;
-    if (hfApiKey) body.hf_api_key = hfApiKey;
-
     try {
-        const response = await fetch("/api/settings", {
+        const response = await fetch(apiUrl("/api/settings"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
@@ -662,9 +662,7 @@ async function saveSettings() {
             hfStatusEl.className = "api-key-status connected";
         }
 
-        document.getElementById("apiKeyInput").value = "";
-        document.getElementById("hfApiKeyInput").value = "";
-        showToast("Configuration saved successfully", "success");
+        showToast("Preferences saved successfully", "success");
         loadSettings();
 
     } catch (err) {

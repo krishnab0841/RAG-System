@@ -7,10 +7,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
-from app.config import STATIC_DIR, UPLOAD_DIR
+from app.config import get_cors_origins
 from app.routes import router
 
 logger = logging.getLogger(__name__)
@@ -36,8 +34,8 @@ app = FastAPI(
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=get_cors_origins(),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -47,10 +45,6 @@ app.include_router(router)
 
 
 @app.get("/")
-async def serve_frontend():
-    """Serve the frontend SPA."""
-    return FileResponse(str(STATIC_DIR / "index.html"))
-
-
-# --- Static Files (mounted after root route to avoid conflicts) ---
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+async def service_info():
+    """Minimal endpoint for visitors and platform checks."""
+    return {"service": "RAG System API", "health": "/api/health"}

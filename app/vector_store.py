@@ -24,20 +24,11 @@ class VectorStore:
         self._embeddings = None
         self._store: Optional[InMemoryVectorStore] = None
         self._doc_registry: dict[str, dict] = {}  # doc_id -> {filename, file_type, chunk_count}
-        self._runtime_hf_key: str = ""  # Can be set via settings API
         # Track all documents with their store IDs for deletion
         self._doc_store_ids: dict[str, list[str]] = {}  # doc_id -> [store_ids]
 
-    def set_api_key(self, key: str):
-        """Update the HuggingFace API key at runtime."""
-        self._runtime_hf_key = key
-        # Force re-initialization of embeddings with new key
-        self._embeddings = None
-
     def _get_api_key(self) -> str:
-        """Resolve HuggingFace API key from runtime settings or config."""
-        if self._runtime_hf_key:
-            return self._runtime_hf_key
+        """Read the HuggingFace API key supplied by the hosting environment."""
         return HUGGINGFACE_API_KEY
 
     @property
@@ -48,7 +39,7 @@ class VectorStore:
             if not api_key:
                 raise ValueError(
                     "HuggingFace API key is required for embeddings. "
-                    "Set HUGGINGFACE_API_KEY in your environment or configure it in Settings."
+                    "Set HUGGINGFACE_API_KEY in the hosting environment."
                 )
             logger.info("Initializing HuggingFace Inference API embeddings: %s", EMBEDDING_MODEL)
             self._embeddings = HuggingFaceEndpointEmbeddings(

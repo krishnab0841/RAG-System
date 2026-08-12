@@ -122,18 +122,9 @@
                         <div class="section-body-inner">
                             <div class="settings-group">
                                 <div class="setting-field">
-                                    <label>Groq API Key</label>
-                                    <div class="input-with-icon">
-                                        <input type="password" id="apiKeyInput" placeholder="gsk_...">
-                                    </div>
-                                    <div class="api-key-status missing" id="apiKeyStatus">● Key Pending</div>
-                                </div>
-                                <div class="setting-field">
-                                    <label>HuggingFace API Key</label>
-                                    <div class="input-with-icon">
-                                        <input type="password" id="hfApiKeyInput" placeholder="hf_...">
-                                    </div>
-                                    <div class="api-key-status missing" id="hfApiKeyStatus">● Key Pending</div>
+                                    <label>Service credentials</label>
+                                    <div class="api-key-status missing" id="apiKeyStatus">● Groq key pending</div>
+                                    <div class="api-key-status missing" id="hfApiKeyStatus">● Hugging Face key pending</div>
                                 </div>
                                 <div class="setting-field">
                                     <label>LLM Engine</label>
@@ -293,6 +284,7 @@
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <script src="/static/config.js"></script>
     <script src="/static/app.js"></script>
 </body>
 </html>

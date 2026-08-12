@@ -42,9 +42,7 @@ class DocumentListResponse(BaseModel):
 
 
 class SettingsRequest(BaseModel):
-    """Request body for updating settings."""
-    api_key: Optional[str] = None
-    hf_api_key: Optional[str] = None
+    """Non-secret runtime preferences exposed to the frontend."""
     model: Optional[str] = None
     top_k: Optional[int] = None
 

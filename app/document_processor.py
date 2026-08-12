@@ -128,7 +128,7 @@ def chunk_url(url: str) -> tuple[str, list[Document]]:
         - chunks: List of chunked LangChain Document objects.
     """
     parsed = urlparse(url)
-    if not parsed.scheme or not parsed.netloc:
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise ValueError("Invalid URL format. Please provide a valid HTTP/HTTPS link.")
 
     # Derive a display name from the URL

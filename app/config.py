@@ -18,8 +18,9 @@ load_dotenv()
 # --- Paths ---
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Vercel's serverless environment has a read-only filesystem except for /tmp
-if os.environ.get("VERCEL"):
+# Render's filesystem is ephemeral. Use its writable temporary directory so
+# uploaded source files never end up in the application checkout.
+if os.environ.get("VERCEL") or os.environ.get("RENDER"):
     UPLOAD_DIR = Path("/tmp/uploads")
 else:
     UPLOAD_DIR = BASE_DIR / "uploads"
@@ -49,3 +50,12 @@ TOP_K = 5
 
 # --- Supported File Types ---
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".docx", ".csv", ".md"}
+
+# Keep request handling within the resources available to a Render web service.
+MAX_UPLOAD_SIZE_BYTES = 20 * 1024 * 1024
+
+
+def get_cors_origins() -> list[str]:
+    """Return explicitly configured browser origins for the API."""
+    configured_origins = os.getenv("CORS_ORIGINS", "")
+    return [origin.strip().rstrip("/") for origin in configured_origins.split(",") if origin.strip()]
