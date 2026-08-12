@@ -29,6 +29,8 @@ Frontend (HTML/CSS/JS) → FastAPI Backend → LangChain Pipeline
 | **Backend Deployment** | Render web service |
 | **Frontend Deployment** | Vercel static site |
 
+**Live frontend:** [rag-system-iggl.vercel.app](https://rag-system-iggl.vercel.app/)
+
 ## ✨ Features
 
 - 📄 **Multi-format Document Upload** — Supports PDF, TXT, DOCX, CSV, and Markdown files.
@@ -86,16 +88,16 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs) for the API docume
 
 ## ☁️ Deploy the backend to Render
 
-The repository includes `render.yaml`, so it can be deployed as a Render Blueprint. It uses Python 3.11, installs `requirements.txt`, starts `uvicorn app.main:app`, and checks `/api/health`.
+The repository includes `render.yaml`, so it can be deployed as a Render Blueprint. The service is explicitly configured for Render's free plan. It uses Python 3.11, installs `requirements.txt`, starts `uvicorn app.main:app`, and checks `/api/health`.
 
 1. Push this repository to GitHub, GitLab, or Bitbucket. Do not commit `.env`.
-2. In Render, select **New → Blueprint** and select the repository. Render reads `render.yaml`.
+2. In Render, select **New → Blueprint** and select the repository. Render reads `render.yaml` and creates a free web service. You can also select **New → Web Service**, choose the repository, select the **Free** instance type, and use the same build/start commands from `render.yaml`.
 3. Set these environment variables in the service configuration:
 
    ```text
    GROQ_API_KEY=your_groq_key
    HUGGINGFACE_API_KEY=your_hugging_face_token
-   CORS_ORIGINS=https://your-frontend.vercel.app
+   CORS_ORIGINS=https://rag-system-iggl.vercel.app
    ```
 
    For a custom frontend domain, add it as a comma-separated value too, for example: `https://app.example.com,https://your-frontend.vercel.app`.
@@ -103,6 +105,8 @@ The repository includes `render.yaml`, so it can be deployed as a Render Bluepri
 5. Verify `https://your-render-url/api/health` responds with `status: "ok"`.
 
 Render's filesystem and this application's vector store are ephemeral. Uploaded documents and their index disappear after a restart, redeploy, or scale-out. Add persistent object storage and a managed vector database before using this for durable or multi-user workloads.
+
+Render free web services can spin down after inactivity, so the first request after an idle period can be slow.
 
 ## ▲ Connect and deploy the frontend on Vercel
 
@@ -115,6 +119,8 @@ Render's filesystem and this application's vector store are ephemeral. Uploaded 
 2. Import the same repository in Vercel. The included `vercel.json` deploys only the static frontend; it no longer deploys the FastAPI backend as a serverless function.
 3. Deploy. Open the Vercel URL and upload a small text file to confirm browser requests reach Render.
 4. If the browser reports a CORS error, make the Vercel URL exactly match one of the `CORS_ORIGINS` values in Render, then redeploy the Render service.
+
+The live production frontend is [rag-system-iggl.vercel.app](https://rag-system-iggl.vercel.app/).
 
 For preview deployments, either add each preview URL to `CORS_ORIGINS` or test only against the production Vercel domain.
 
