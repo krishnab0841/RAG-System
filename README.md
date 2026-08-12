@@ -29,7 +29,7 @@ Frontend (HTML/CSS/JS) → FastAPI Backend → LangChain Pipeline
 | **Backend Deployment** | Render web service |
 | **Frontend Deployment** | Vercel static site |
 
-**Live frontend:** [rag-system-iggl.vercel.app](https://rag-system-iggl.vercel.app/)
+**Live frontend:** [rag-system-iggl.vercel.app](rag-system-iggl.vercel.app)
 
 ## ✨ Features
 
